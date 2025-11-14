@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from .models import Note
-from .serializers import NoteSerializer, NoteCreateSerializer, TranslationSerializer
+from .serializers import NoteSerializer, NoteCreateSerializer, TranslationSerializer, FileUploadSerializer
 
 # Try to import Translator, handle gracefully if not available
 try:
@@ -181,5 +181,55 @@ class NoteViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {'error': f'Translation failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['post'], url_path='upload')
+    def upload_file(self, request):
+        """
+        Upload a .txt file and create a note from its content
+        POST /api/notes/upload/
+        Body: multipart/form-data with 'file' field
+        Optional: 'title', 'original_language'
+        """
+        serializer = FileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        uploaded_file = serializer.validated_data['file']
+        title = serializer.validated_data.get('title', '')
+        original_language = serializer.validated_data.get('original_language', 'en')
+        
+        try:
+            # Read file content
+            # Handle both text and binary mode
+            try:
+                # Try to decode as UTF-8
+                file_content = uploaded_file.read().decode('utf-8')
+            except UnicodeDecodeError:
+                # If UTF-8 fails, try with error handling
+                uploaded_file.seek(0)  # Reset file pointer
+                file_content = uploaded_file.read().decode('utf-8', errors='ignore')
+            
+            # Use filename as title if title not provided
+            if not title:
+                title = uploaded_file.name.replace('.txt', '').replace('_', ' ').title()
+            
+            # Create note from file content
+            note = Note.objects.create(
+                title=title,
+                text=file_content.strip(),
+                original_language=original_language
+            )
+            
+            # Invalidate list cache
+            cache.delete('notes_list')
+            
+            # Return created note
+            response_serializer = NoteSerializer(note)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to process file: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
