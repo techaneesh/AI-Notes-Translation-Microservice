@@ -6,4 +6,5 @@ python-decouple>=3.8
 django-redis>=5.2.0
 redis>=4.5.0
 djangorestframework-simplejwt>=5.2.0
+gunicorn>=21.2.0
 
