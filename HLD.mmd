@@ -1,0 +1,45 @@
+graph TB
+    subgraph "Client Layer"
+        Client[Client Application<br/>Browser/Mobile/Postman]
+    end
+    
+    subgraph "API Layer"
+        API[Django REST Framework<br/>Port 8005]
+        Auth[JWT Authentication<br/>Token Validation]
+    end
+    
+    subgraph "Application Layer"
+        Notes[Notes App<br/>CRUD Operations]
+        Analytics[Analytics App<br/>Statistics]
+        CacheLayer[Cache Layer<br/>Redis Integration]
+    end
+    
+    subgraph "Data Layer"
+        DB[(PostgreSQL Database<br/>Port 5435)]
+        Redis[(Redis Cache<br/>Port 6379)]
+    end
+    
+    subgraph "External Services"
+        Translate[Google Translate API<br/>Translation Service]
+    end
+    
+    Client -->|HTTP/REST API| API
+    API -->|Validate Token| Auth
+    Auth -->|Authenticated| Notes
+    Auth -->|Authenticated| Analytics
+    Notes -->|Read/Write| DB
+    Notes -->|Cache Operations| Redis
+    Notes -->|Translation Request| Translate
+    Analytics -->|Query Data| DB
+    Analytics -->|Cache Stats| Redis
+    CacheLayer -->|Manage Cache| Redis
+    
+    style Client fill:#e1f5ff
+    style API fill:#fff4e1
+    style Auth fill:#ffe1f5
+    style Notes fill:#e1ffe1
+    style Analytics fill:#e1ffe1
+    style DB fill:#ffe1e1
+    style Redis fill:#ffe1e1
+    style Translate fill:#f5e1ff
+

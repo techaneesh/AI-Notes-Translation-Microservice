@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant Client
+    participant API as Django API
+    participant Auth as JWT Auth
+    participant Cache as Redis Cache
+    participant DB as PostgreSQL
+    participant Translate as Google Translate
+    
+    Note over Client,Translate: Translation Request Flow
+    
+    Client->>API: POST /api/notes/1/translate/<br/>{target_language: "hi"}<br/>Authorization: Bearer token
+    API->>Auth: Validate JWT Token
+    alt Token Invalid
+        Auth-->>API: 401 Unauthorized
+        API-->>Client: 401 Unauthorized
+    else Token Valid
+        Auth-->>API: Token Valid
+        API->>Cache: Check cache<br/>key: translation_1_hi
+        alt Cache Hit
+            Cache-->>API: Return cached translation
+            API->>DB: Update note with translation
+            DB-->>API: Note updated
+            API-->>Client: Return translation (cached: true)
+        else Cache Miss
+            Cache-->>API: Cache miss
+            API->>DB: Fetch note data
+            DB-->>API: Note data
+            API->>Translate: Translate text<br/>(en → hi)
+            Translate-->>API: Translated text
+            API->>DB: Save translation to database
+            DB-->>API: Translation saved
+            API->>Cache: Cache translation<br/>(TTL: 1 hour)
+            Cache-->>API: Cached
+            API-->>Client: Return translation (cached: false)
+        end
+    end
+
