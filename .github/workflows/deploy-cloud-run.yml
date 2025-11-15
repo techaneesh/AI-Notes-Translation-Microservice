@@ -10,7 +10,6 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: ai-notes-translation
   REGION: us-central1
-  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
 
 jobs:
   deploy:
@@ -35,17 +34,23 @@ jobs:
         run: gcloud auth configure-docker
 
       - name: Build Docker image
+        env:
+          IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
         run: |
           docker build -t $IMAGE_NAME:$GITHUB_SHA -t $IMAGE_NAME:latest .
 
       - name: Push Docker image to GCR
+        env:
+          IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
         run: |
           docker push $IMAGE_NAME:$GITHUB_SHA
           docker push $IMAGE_NAME:latest
 
       - name: Deploy to Cloud Run
+        env:
+          IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
         run: |
-          gcloud run deploy $SERVICE_NAME \
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image $IMAGE_NAME:$GITHUB_SHA \
             --platform managed \
             --region $REGION \
